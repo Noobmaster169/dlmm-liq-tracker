@@ -20,10 +20,10 @@ interface Candle {
 }
 
 const INTERVALS = [
-  { label: "5m", value: "5_MINUTE", candles: 300 },
-  { label: "15m", value: "15_MINUTE", candles: 300 },
-  { label: "1H", value: "1_HOUR", candles: 300 },
-  { label: "4H", value: "4_HOUR", candles: 300 },
+  { label: "5m", value: "5_MINUTE", candles: 700 },
+  { label: "15m", value: "15_MINUTE", candles: 700 },
+  { label: "1H", value: "1_HOUR", candles: 700 },
+  { label: "4H", value: "4_HOUR", candles: 700 },
   { label: "1D", value: "1_DAY", candles: 365 },
   { label: "1W", value: "1_WEEK", candles: 200 },
 ];
