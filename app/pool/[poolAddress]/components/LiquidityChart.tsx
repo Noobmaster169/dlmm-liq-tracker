@@ -7,6 +7,7 @@ import {
   formatPriceMovement,
   formatUsd,
 } from "@/app/lib/format";
+import { X } from "lucide-react";
 
 type ChartRow =
   | { type: "bin"; bin: BinData }
@@ -127,6 +128,8 @@ function BinRow({
   tokenYSymbol,
   xUsdPrice,
   yUsdPrice,
+  isSelected,
+  onSelect,
 }: {
   bin: BinData;
   maxUsdTotal: number;
@@ -135,6 +138,8 @@ function BinRow({
   tokenYSymbol: string;
   xUsdPrice: number;
   yUsdPrice: number;
+  isSelected: boolean;
+  onSelect: () => void;
 }) {
   const xUsd = bin.xAmountDecimal * xUsdPrice;
   const yUsd = bin.yAmountDecimal * yUsdPrice;
@@ -149,12 +154,17 @@ function BinRow({
 
   return (
     <div
-      className={`group grid grid-cols-[56px_1fr_72px_64px] items-center h-[18px] gap-x-2 ${
-        bin.isActiveBin ? "bg-yellow-400/10" : ""
+      onClick={onSelect}
+      className={`group grid grid-cols-[40px_1fr_48px] sm:grid-cols-[56px_1fr_72px_64px] items-center h-[18px] gap-x-1.5 sm:gap-x-2 cursor-pointer transition-colors ${
+        isSelected
+          ? "bg-blue-400/15"
+          : bin.isActiveBin
+            ? "bg-yellow-400/10"
+            : "hover:bg-white/[0.03]"
       }`}
     >
       <div
-        className={`text-[10px] font-mono tabular-nums ${
+        className={`text-[10px] font-mono tabular-nums truncate ${
           bin.isActiveBin ? "text-yellow-400 font-bold" : "text-gray-600"
         }`}
       >
@@ -178,8 +188,8 @@ function BinRow({
           />
         </div>
 
-        {/* Tooltip */}
-        <div className="pointer-events-none absolute left-0 -top-10 z-10 hidden group-hover:block bg-gray-900 border border-gray-700 rounded px-2.5 py-1.5 text-[10px] text-gray-200 font-mono whitespace-nowrap shadow-lg">
+        {/* Desktop hover tooltip (hidden on touch devices) */}
+        <div className="pointer-events-none absolute left-0 -top-10 z-10 hidden group-hover:block bg-gray-900 border border-gray-700 rounded px-2.5 py-1.5 text-[10px] text-gray-200 font-mono whitespace-nowrap shadow-lg max-sm:!hidden">
           <div>
             {tokenXSymbol}: {formatFullAmount(bin.xAmountDecimal)}
             {xUsdPrice > 0 && (
@@ -200,8 +210,9 @@ function BinRow({
         </div>
       </div>
 
+      {/* Price — hidden on mobile */}
       <div
-        className={`text-right text-[10px] font-mono tabular-nums truncate ${
+        className={`hidden sm:block text-right text-[10px] font-mono tabular-nums truncate ${
           bin.isActiveBin ? "text-yellow-400 font-semibold" : "text-gray-500"
         }`}
       >
@@ -220,6 +231,107 @@ function BinRow({
         }`}
       >
         {bin.isActiveBin ? "active" : formatPriceMovement(movePct)}
+      </div>
+    </div>
+  );
+}
+
+/** Detail panel shown when a bin is tapped/selected */
+function BinDetailPanel({
+  bin,
+  activePrice,
+  tokenXSymbol,
+  tokenYSymbol,
+  xUsdPrice,
+  yUsdPrice,
+  onClose,
+}: {
+  bin: BinData;
+  activePrice: number;
+  tokenXSymbol: string;
+  tokenYSymbol: string;
+  xUsdPrice: number;
+  yUsdPrice: number;
+  onClose: () => void;
+}) {
+  const xUsd = bin.xAmountDecimal * xUsdPrice;
+  const yUsd = bin.yAmountDecimal * yUsdPrice;
+  const totalUsd = xUsd + yUsd;
+  const binPrice = Number(bin.pricePerToken);
+  const movePct =
+    activePrice > 0 ? ((binPrice - activePrice) / activePrice) * 100 : 0;
+
+  return (
+    <div className="bg-gray-900/95 border border-white/10 rounded-lg p-3 mb-2 text-xs font-mono">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <span className="text-gray-400 text-[10px]">Bin</span>
+          <span
+            className={`font-semibold ${bin.isActiveBin ? "text-yellow-400" : "text-gray-200"}`}
+          >
+            #{bin.binId}
+          </span>
+          {bin.isActiveBin && (
+            <span className="text-[10px] text-yellow-400/70 bg-yellow-400/10 px-1.5 py-0.5 rounded">
+              Active
+            </span>
+          )}
+        </div>
+        <button
+          onClick={onClose}
+          className="text-gray-500 hover:text-gray-300 transition-colors cursor-pointer p-0.5"
+        >
+          <X size={14} />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+        <div>
+          <span className="text-gray-500">{tokenXSymbol} </span>
+          <span className="text-gray-200">
+            {formatFullAmount(bin.xAmountDecimal)}
+          </span>
+          {xUsdPrice > 0 && (
+            <span className="text-gray-500"> ({formatUsd(xUsd)})</span>
+          )}
+        </div>
+        <div>
+          <span className="text-gray-500">{tokenYSymbol} </span>
+          <span className="text-gray-200">
+            {formatFullAmount(bin.yAmountDecimal)}
+          </span>
+          {yUsdPrice > 0 && (
+            <span className="text-gray-500"> ({formatUsd(yUsd)})</span>
+          )}
+        </div>
+        <div>
+          <span className="text-gray-500">Price </span>
+          <span className="text-gray-200">{binPrice.toFixed(6)}</span>
+        </div>
+        <div>
+          <span className="text-gray-500">Move </span>
+          <span
+            className={
+              bin.isActiveBin
+                ? "text-yellow-400"
+                : movePct > 0
+                  ? "text-emerald-400"
+                  : movePct < 0
+                    ? "text-red-400"
+                    : "text-gray-400"
+            }
+          >
+            {bin.isActiveBin ? "active" : formatPriceMovement(movePct)}
+          </span>
+        </div>
+        {totalUsd > 0 && (
+          <div className="col-span-2 border-t border-white/5 pt-1.5 mt-0.5">
+            <span className="text-gray-500">Bin TVL </span>
+            <span className="text-gray-200 font-semibold">
+              {formatUsd(totalUsd)}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -293,6 +405,7 @@ export function LiquidityChart({ pool }: { pool: PoolData }) {
 
   const [rangeLow, setRangeLow] = useState(fullLow);
   const [rangeHigh, setRangeHigh] = useState(fullHigh);
+  const [selectedBinId, setSelectedBinId] = useState<number | null>(null);
 
   const isFullRange = rangeLow <= fullLow && rangeHigh >= fullHigh;
   const isMinFull = rangeLow <= fullLow;
@@ -304,10 +417,15 @@ export function LiquidityChart({ pool }: { pool: PoolData }) {
   const { rows, maxUsdTotal, activePrice, visibleBins, gapBins } =
     useChartData(pool, rangeLow, rangeHigh);
 
+  // Find the selected bin data
+  const selectedBin = selectedBinId != null
+    ? (pool.bins ?? []).find((b) => b.binId === selectedBinId) ?? null
+    : null;
+
   return (
     <>
       {/* Range filter */}
-      <div className="bg-white/5 border border-white/10 rounded-lg p-4 mb-4">
+      <div className="bg-white/5 border border-white/10 rounded-lg p-3 sm:p-4 mb-4">
         <div className="flex items-center justify-between mb-3">
           <div className="text-xs text-gray-400">
             Price Range from Active Bin
@@ -383,7 +501,7 @@ export function LiquidityChart({ pool }: { pool: PoolData }) {
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-4 mb-3 text-xs">
+      <div className="flex items-center gap-3 sm:gap-4 mb-3 text-xs">
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded-sm bg-blue-500" />
           <span>{pool.tokenX.symbol}</span>
@@ -403,42 +521,62 @@ export function LiquidityChart({ pool }: { pool: PoolData }) {
       </div>
 
       {/* Chart */}
-      <div className="bg-white/5 border border-white/10 rounded-lg p-3 overflow-x-auto">
-        <div className="min-w-[600px]">
-          <div className="grid grid-cols-[56px_1fr_72px_64px] items-center text-[10px] text-gray-500 mb-1 gap-x-2">
-            <div>Bin</div>
-            <div>Liquidity (USD value)</div>
-            <div className="text-right">Price</div>
-            <div className="text-right">Move %</div>
-          </div>
+      <div className="bg-white/5 border border-white/10 rounded-lg p-2 sm:p-3">
+        {/* Selected bin detail panel */}
+        {selectedBin && (
+          <BinDetailPanel
+            bin={selectedBin}
+            activePrice={activePrice}
+            tokenXSymbol={pool.tokenX.symbol}
+            tokenYSymbol={pool.tokenY.symbol}
+            xUsdPrice={xUsdPrice}
+            yUsdPrice={yUsdPrice}
+            onClose={() => setSelectedBinId(null)}
+          />
+        )}
 
-          {rows.length === 0 ? (
-            <div className="py-8 text-center text-sm text-gray-600">
-              No bins with liquidity in this range
-            </div>
-          ) : (
-            rows.map((row) =>
-              row.type === "gap" ? (
-                <GapRow key={`g-${row.fromBinId}`} {...row} />
-              ) : (
-                <BinRow
-                  key={row.bin.binId}
-                  bin={row.bin}
-                  maxUsdTotal={maxUsdTotal}
-                  activePrice={activePrice}
-                  tokenXSymbol={pool.tokenX.symbol}
-                  tokenYSymbol={pool.tokenY.symbol}
-                  xUsdPrice={xUsdPrice}
-                  yUsdPrice={yUsdPrice}
-                />
-              )
-            )
-          )}
+        {/* Column headers */}
+        <div className="grid grid-cols-[40px_1fr_48px] sm:grid-cols-[56px_1fr_72px_64px] items-center text-[10px] text-gray-500 mb-1 gap-x-1.5 sm:gap-x-2">
+          <div>Bin</div>
+          <div>Liquidity (USD value)</div>
+          <div className="hidden sm:block text-right">Price</div>
+          <div className="text-right">Move %</div>
         </div>
+
+        {rows.length === 0 ? (
+          <div className="py-8 text-center text-sm text-gray-600">
+            No bins with liquidity in this range
+          </div>
+        ) : (
+          rows.map((row) =>
+            row.type === "gap" ? (
+              <GapRow key={`g-${row.fromBinId}`} {...row} />
+            ) : (
+              <BinRow
+                key={row.bin.binId}
+                bin={row.bin}
+                maxUsdTotal={maxUsdTotal}
+                activePrice={activePrice}
+                tokenXSymbol={pool.tokenX.symbol}
+                tokenYSymbol={pool.tokenY.symbol}
+                xUsdPrice={xUsdPrice}
+                yUsdPrice={yUsdPrice}
+                isSelected={selectedBinId === row.bin.binId}
+                onSelect={() =>
+                  setSelectedBinId(
+                    selectedBinId === row.bin.binId ? null : row.bin.binId
+                  )
+                }
+              />
+            )
+          )
+        )}
       </div>
 
       <div className="mt-3 text-[10px] text-gray-600">
         {pool.bins.length} total bins fetched
+        <span className="hidden sm:inline"> &middot; hover for details</span>
+        <span className="sm:hidden"> &middot; tap a bin for details</span>
       </div>
     </>
   );
